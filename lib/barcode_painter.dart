@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:ui';
 import 'dart:ui' as ui;
+import 'dart:ui';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +28,52 @@ class BarcodeDetectorPainter extends CustomPainter {
       ..color = Colors.red;
     final Paint background = Paint()..color = Colors.black;
 
+    for (final barcode in barcodes) {
+      final builder = ParagraphBuilder(
+        ParagraphStyle(
+          textAlign: TextAlign.left,
+          fontSize: 16,
+          textDirection: TextDirection.ltr,
+        ),
+      );
+      builder.pushStyle(ui.TextStyle(
+        color: Colors.red,
+        background: background,
+      ));
+      builder.addText(barcode.displayValue ?? 'null');
+      builder.pop();
+
+      final left = translateX(barcode.boundingBox.left, size, imageSize,
+          rotation, cameraLensDirection);
+      final top = translateY(barcode.boundingBox.top, size, imageSize, rotation,
+          cameraLensDirection);
+      final right = translateX(barcode.boundingBox.right, size, imageSize,
+          rotation, cameraLensDirection);
+
+      final cornerPoints = <Offset>[];
+      for (final point in barcode.cornerPoints) {
+        final dx = translateX(
+            point.x.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        final dy = translateY(
+            point.y.toDouble(), size, imageSize, rotation, cameraLensDirection);
+        cornerPoints.add(Offset(dx, dy));
+      }
+      cornerPoints.add(cornerPoints.first);
+
+      canvas.drawPoints(PointMode.polygon, cornerPoints, paint);
+      canvas.drawParagraph(
+          builder.build()
+            ..layout(
+              ParagraphConstraints(width: (right - left).abs()),
+            ),
+          Offset(
+            Platform.isAndroid &&
+                    cameraLensDirection == CameraLensDirection.front
+                ? right
+                : left,
+            top,
+          ));
+    }
   }
 
   @override
